@@ -6,6 +6,20 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Launch UDPClient",
+            "request": "launch",
+            "mainClass": "client.UDPClient",
+            "projectName": "sd-java-tcp"
+        },
+        {
+            "type": "java",
+            "name": "Launch UDPServer",
+            "request": "launch",
+            "mainClass": "server.UDPServer",
+            "projectName": "sd-java-tcp"
+        },
+        {
+            "type": "java",
             "name": "Launch Current File",
             "request": "launch",
             "mainClass": "${file}"

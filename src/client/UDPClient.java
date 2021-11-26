@@ -5,79 +5,97 @@ import java.net.*;
 import org.json.*;
 
 public class UDPClient {
+	public static void main(String[] args) throws IOException {
+		// Datos necesario
+		String direccionServidor = "127.0.0.1";
 
-    public static void main(String[] args) throws IOException {
+		if (args.length > 0) {
+			direccionServidor = args[0];
+		}
 
-        Socket unSocket = null;
-        PrintWriter out = null;
-        BufferedReader in = null;
+		int puertoServidor = 9876;
 
-        try {
-            unSocket = new Socket("localhost", 4444);
-            
-            out = new PrintWriter(unSocket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(unSocket.getInputStream()));
-        } catch (UnknownHostException e) {
-            System.err.println("Host desconocido");
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Error de I/O en la conexion al host");
-            System.exit(1);
-        }
+		try {
+			BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 
-        
-        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        String fromServer;
+			DatagramSocket clientSocket = new DatagramSocket();
 
-        while ((fromServer = in.readLine()) != null) {
-            System.out.println("Servidor: " + fromServer);
-            
-        	JSONObject data = new JSONObject();
-        	JSONObject jo = new JSONObject();
-        	System.out.println("Operación:");
-        	int op = Integer.valueOf(stdIn.readLine());
-        	jo.put("op", op);
-        	
-        	switch (op) {
-        	case 1:
-            	System.out.println("id_estacion: ");
-            	data.put("id_estacion", stdIn.readLine());
-            	System.out.println("ciudad: ");
-            	data.put("ciudad", stdIn.readLine());
-            	System.out.println("porcentaje_humedad: ");
-            	data.put("porcentaje_humedad", stdIn.readLine());
-            	System.out.println("temperatura (int): ");
-            	data.put("temperatura", Integer.valueOf(stdIn.readLine()));
-            	System.out.println("velocidad_viento: ");
-            	data.put("velocidad_viento", stdIn.readLine());
-            	System.out.println("fecha: ");
-            	data.put("fecha", stdIn.readLine());
-            	System.out.println("hora: ");
-            	data.put("hora", stdIn.readLine());
-                jo.put("data", data);
-            	out.println(jo.toString());
-            	break;
-        	case 2:
-            	System.out.println("ciudad: ");
-        		data.put("ciudad", stdIn.readLine());
-                jo.put("data", data);
-            	out.println(jo.toString());
-        		break;
-        	case 3:
-            	System.out.println("fecha: ");
-        		data.put("fecha", stdIn.readLine());
-                jo.put("data", data);
-            	out.println(jo.toString());
-        		break;
-        	default:
-        		System.out.println("Unknown operation - exiting client");
-        	}
-        	
-        }
+			InetAddress IPAddress = InetAddress.getByName(direccionServidor);
+			System.out.println("Intentando conectar a = " + IPAddress + ":" + puertoServidor +  " via UDP...");
 
-        out.close();
-        in.close();
-        stdIn.close();
-        unSocket.close();
+			byte[] sendData = new byte[1024];
+			byte[] receiveData = new byte[1024];
+                
+			JSONObject data = new JSONObject();
+			JSONObject jo = new JSONObject();
+			System.out.println("Operación:");
+			int op = Integer.valueOf(stdIn.readLine());
+			jo.put("op", op);
+			
+			switch (op) {
+			case 1:
+				System.out.println("id_estacion: ");
+				data.put("id_estacion", stdIn.readLine());
+				System.out.println("ciudad: ");
+				data.put("ciudad", stdIn.readLine());
+				System.out.println("porcentaje_humedad: ");
+				data.put("porcentaje_humedad", stdIn.readLine());
+				System.out.println("temperatura (int): ");
+				data.put("temperatura", Integer.valueOf(stdIn.readLine()));
+				System.out.println("velocidad_viento: ");
+				data.put("velocidad_viento", stdIn.readLine());
+				System.out.println("fecha: ");
+				data.put("fecha", stdIn.readLine());
+				System.out.println("hora: ");
+				data.put("hora", stdIn.readLine());
+				jo.put("data", data);
+				sendData = jo.toString().getBytes();
+				break;
+			case 2:
+				System.out.println("ciudad: ");
+				data.put("ciudad", stdIn.readLine());
+				jo.put("data", data);
+				sendData = jo.toString().getBytes();
+				break;
+			case 3:
+				System.out.println("fecha: ");
+				data.put("fecha", stdIn.readLine());
+				jo.put("data", data);
+				sendData = jo.toString().getBytes();
+				break;
+			default:
+				System.out.println("Unknown operation");
+			}
+
+			DatagramPacket sendPacket =
+					new DatagramPacket(sendData, sendData.length, IPAddress, puertoServidor);
+
+			clientSocket.send(sendPacket);
+
+			DatagramPacket receivePacket =
+					new DatagramPacket(receiveData, receiveData.length);
+
+			//Vamos a hacer una llamada BLOQUEANTE entonces establecemos un timeout maximo de espera
+			clientSocket.setSoTimeout(10000);
+
+			try {
+				// ESPERAMOS LA RESPUESTA, BLOQUENTE
+				clientSocket.receive(receivePacket);
+
+				String respuesta = new String(receivePacket.getData());
+				
+				InetAddress returnIPAddress = receivePacket.getAddress();
+				int port = receivePacket.getPort();
+
+				System.out.println("Respuesta desde =  " + returnIPAddress + ":" + port + ": " + respuesta);
+			} catch (SocketTimeoutException ste) {
+				System.out.println("TimeOut: El paquete udp se asume perdido.");
+			}
+			clientSocket.close();
+		} catch (UnknownHostException ex) {
+			System.err.println(ex);
+		} catch (IOException ex) {
+			System.err.println(ex);
+		}
     }
 }
